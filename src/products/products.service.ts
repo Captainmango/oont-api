@@ -15,9 +15,10 @@ export class ProductsService {
   ): ResultAsync<ProductsListDto, ProductError> {
     return ResultAsync.fromPromise(
       this.repo.getProducts(page, pageSize),
-      (): ProductError => ({
+      (originalError): ProductError => ({
         type: errTypes.PRODUCTS_NOT_FOUND,
         message: 'Failed to retrieve products',
+        originalError,
       }),
     );
   }
@@ -25,9 +26,10 @@ export class ProductsService {
   getById(id: number): ResultAsync<ProductEntity | null, ProductError> {
     return ResultAsync.fromPromise(
       this.repo.getProductById(id),
-      (): ProductError => ({
+      (originalError): ProductError => ({
         type: errTypes.PRODUCT_NOT_FOUND,
         message: 'Failed to retrieve product',
+        originalError,
       }),
     );
   }

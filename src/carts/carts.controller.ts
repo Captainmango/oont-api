@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -55,13 +57,19 @@ export class CartsController {
 
     if (result.isErr()) {
       const error = result.error;
-      if (
-        error.type === errTypes.CART_NOT_FOUND ||
-        error.type === errTypes.PRODUCT_NOT_FOUND
-      ) {
-        throw new NotFoundException(error.message);
+      switch (error.type) {
+        case errTypes.CART_ITEM_NOT_FOUND:
+        case errTypes.CART_NOT_FOUND:
+        case errTypes.PRODUCT_NOT_FOUND:
+          throw new NotFoundException(error)
+        case errTypes.PRODUCT_ADD_FAILED:
+        case errTypes.PRODUCT_UPDATE_FAILED:
+          throw new ConflictException(error)
+        case errTypes.CART_ITEM_NOT_DELETED:
+        case errTypes.CART_NOT_DELETED:
+        default:
+          throw new InternalServerErrorException(error)
       }
-      throw new BadRequestException(error.message);
     }
 
     return result.value;
@@ -82,14 +90,19 @@ export class CartsController {
 
     if (result.isErr()) {
       const error = result.error;
-      if (
-        error.type === errTypes.CART_NOT_FOUND ||
-        error.type === errTypes.CART_ITEM_NOT_FOUND ||
-        error.type === errTypes.PRODUCT_NOT_FOUND
-      ) {
-        throw new NotFoundException(error.message);
+      switch (error.type) {
+        case errTypes.CART_ITEM_NOT_FOUND:
+        case errTypes.CART_NOT_FOUND:
+        case errTypes.PRODUCT_NOT_FOUND:
+          throw new NotFoundException(error)
+        case errTypes.PRODUCT_ADD_FAILED:
+        case errTypes.PRODUCT_UPDATE_FAILED:
+          throw new ConflictException(error)
+        case errTypes.CART_ITEM_NOT_DELETED:
+        case errTypes.CART_NOT_DELETED:
+        default:
+          throw new InternalServerErrorException(error)
       }
-      throw new BadRequestException(error.message);
     }
 
     return result.value;
@@ -105,14 +118,19 @@ export class CartsController {
 
     if (result.isErr()) {
       const error = result.error;
-      if (
-        error.type === errTypes.CART_NOT_FOUND ||
-        error.type === errTypes.CART_ITEM_NOT_FOUND ||
-        error.type === errTypes.PRODUCT_NOT_FOUND
-      ) {
-        throw new NotFoundException(error.message);
+      switch (error.type) {
+        case errTypes.CART_ITEM_NOT_FOUND:
+        case errTypes.CART_NOT_FOUND:
+        case errTypes.PRODUCT_NOT_FOUND:
+          throw new NotFoundException(error)
+        case errTypes.PRODUCT_ADD_FAILED:
+        case errTypes.PRODUCT_UPDATE_FAILED:
+          throw new ConflictException(error)
+        case errTypes.CART_ITEM_NOT_DELETED:
+        case errTypes.CART_NOT_DELETED:
+        default:
+          throw new InternalServerErrorException(error)
       }
-      throw new BadRequestException(error.message);
     }
 
     return result.value;
@@ -127,14 +145,19 @@ export class CartsController {
 
     if (result.isErr()) {
       const error = result.error;
-      if (
-        error.type === errTypes.CART_NOT_FOUND ||
-        error.type === errTypes.CART_ITEM_NOT_FOUND ||
-        error.type === errTypes.PRODUCT_NOT_FOUND
-      ) {
-        throw new NotFoundException(error.message);
+      switch (error.type) {
+        case errTypes.CART_ITEM_NOT_FOUND:
+        case errTypes.CART_NOT_FOUND:
+        case errTypes.PRODUCT_NOT_FOUND:
+          throw new NotFoundException(error)
+        case errTypes.PRODUCT_ADD_FAILED:
+        case errTypes.PRODUCT_UPDATE_FAILED:
+          throw new ConflictException(error)
+        case errTypes.CART_ITEM_NOT_DELETED:
+        case errTypes.CART_NOT_DELETED:
+        default:
+          throw new InternalServerErrorException(error)
       }
-      throw new BadRequestException(error.message);
     }
   }
 }

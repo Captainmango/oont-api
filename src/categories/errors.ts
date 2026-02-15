@@ -1,9 +1,4 @@
-import { errorType } from '@app/shared/errorType';
-
-
-export type CategoryError =
-  | GetAllCategoriesError
-  | GetProductsByCategoryError
+import { ErrorType } from '@app/shared/errorType';
 
 export const errTypes = {
   CATEGORIES_NOT_FOUND: 'CATEGORIES_NOT_FOUND',
@@ -11,12 +6,6 @@ export const errTypes = {
   PRODUCTS_NOT_FOUND: 'PRODUCTS_NOT_FOUND',
 } as const;
 
-interface GetAllCategoriesError extends errorType {
+export interface CategoryError extends ErrorType {
   type: keyof typeof errTypes;
-  message: string;
-}
-
-interface GetProductsByCategoryError extends errorType {
-  type: keyof typeof errTypes;
-  message: string;
 }

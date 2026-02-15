@@ -1,7 +1,8 @@
 import {
-  BadRequestException,
   Controller,
   Get,
+  InternalServerErrorException,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Query,
@@ -12,6 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 import { ProductEntity } from '@app/shared/entities/product.entity';
+import { errTypes } from './errors';
 
 @ApiTags('products')
 @Controller({
@@ -32,7 +34,7 @@ export class ProductsController {
 
     if (result.isErr()) {
       const error = result.error;
-      throw new BadRequestException(error.message);
+      throw new NotFoundException(error);
     }
 
     return result.value;
@@ -45,8 +47,14 @@ export class ProductsController {
     const result = await this.productsService.getById(id);
 
     if (result.isErr()) {
-      const error = result.error;
-      throw new BadRequestException(error.message);
+      const error = result.error
+      switch (error.type) {
+        case errTypes.PRODUCT_NOT_FOUND:
+        case errTypes.PRODUCTS_NOT_FOUND:
+          throw new NotFoundException(error);
+        default:
+          throw new InternalServerErrorException(error)
+      }
     }
 
     return result.value;

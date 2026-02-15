@@ -3,10 +3,7 @@ import { CartsRepository } from './carts.repository';
 import { CartEntity } from '@app/shared/entities/cart.entity';
 import { CartWithCartProducts } from './dtos/cartWithProducts.dto';
 import { ResultAsync, ok, okAsync } from 'neverthrow';
-import {
-  CartError,
-  errTypes,
-} from './errors';
+import { CartError, errTypes } from './errors';
 
 interface CartContext {
   cart: CartWithCartProducts;
@@ -27,9 +24,10 @@ export class CartsService {
   getUserCart(userId: number): ResultAsync<CartEntity | null, CartError> {
     return ResultAsync.fromPromise(
       this.repo.findMostRecentCartByUserId(userId),
-      (): CartError => ({
+      (originalError): CartError => ({
         type: errTypes.CART_NOT_FOUND,
         message: 'Failed to retrieve cart for user',
+        originalError,
       }),
     ).map((cart) => (cart ? this.transformCartToEntity(cart) : null));
   }
@@ -41,9 +39,10 @@ export class CartsService {
   ): ResultAsync<CartEntity, CartError> {
     return ResultAsync.fromPromise(
       this.repo.findMostRecentCartByUserId(userId),
-      (): CartError => ({
+      (originalError): CartError => ({
         type: errTypes.CART_NOT_FOUND,
         message: 'Failed to find cart for user',
+        originalError,
       }),
     )
       .andThen(this.getOrCreateCart(userId))
@@ -60,9 +59,10 @@ export class CartsService {
   ): ResultAsync<CartEntity, CartError> {
     return ResultAsync.fromPromise(
       this.repo.findMostRecentCartByUserId(userId),
-      (): CartError => ({
+      (originalError): CartError => ({
         type: errTypes.CART_NOT_FOUND,
         message: 'Failed to find cart for user',
+        originalError,
       }),
     )
       .andThen(this.validateCartExists())
@@ -79,12 +79,13 @@ export class CartsService {
   ): ResultAsync<CartEntity, CartError> {
     return ResultAsync.fromPromise(
       this.repo.findMostRecentCartByUserId(userId),
-      (): CartError => ({
+      (originalError): CartError => ({
         type: errTypes.CART_NOT_FOUND,
         message: 'Unable to find user cart',
+        originalError,
       }),
     )
-      .andThen(this.validateCartExistsForRemove())
+      .andThen(this.validateCartExists())
       .andThen(this.findCartProduct(itemId))
       .andThen(this.validateCartItemExists())
       .andThen(this.removeCartProduct(itemId))
@@ -95,9 +96,10 @@ export class CartsService {
   deleteUserCart(userId: number): ResultAsync<void, CartError> {
     return ResultAsync.fromPromise(
       this.repo.deleteUserCart(userId),
-      (): CartError => ({
+      (originalError): CartError => ({
         type: errTypes.CART_NOT_DELETED,
         message: 'Unable to delete cart',
+        originalError,
       }),
     );
   }
@@ -114,9 +116,10 @@ export class CartsService {
 
       return ResultAsync.fromPromise(
         this.repo.createCartForUser(userId),
-        (): CartError => ({
-          type: errTypes.CART_NOT_FOUND,
+        (originalError): CartError => ({
+          type: errTypes.FAILED_TO_CREATE_CART,
           message: 'Failed to create cart for user',
+          originalError,
         }),
       ).map((newCart) => ({ cart: newCart }));
     };
@@ -125,25 +128,25 @@ export class CartsService {
   private upsertCartProduct(
     productId: number,
     quantity: number,
-  ): (
-    ctx: CartWithProductContext,
-  ) => ResultAsync<CartIdContext, CartError> {
+  ): (ctx: CartWithProductContext) => ResultAsync<CartIdContext, CartError> {
     return ({ cart, existingCartProduct }) => {
       if (existingCartProduct) {
         return ResultAsync.fromPromise(
           this.repo.updateCartProductQuantity(cart.id, productId, quantity),
-          (): CartError => ({
-            type: errTypes.PRODUCT_NOT_FOUND,
+          (originalError): CartError => ({
+            type: errTypes.PRODUCT_UPDATE_FAILED,
             message: 'Failed to update product quantity in cart',
+            originalError,
           }),
         ).map(() => ({ cartId: cart.id }));
       }
 
       return ResultAsync.fromPromise(
         this.repo.addCartProduct(cart.id, productId, quantity),
-        (): CartError => ({
-          type: errTypes.PRODUCT_NOT_FOUND,
+        (originalError): CartError => ({
+          type: errTypes.PRODUCT_ADD_FAILED,
           message: 'Failed to add product to cart',
+          originalError,
         }),
       ).map(() => ({ cartId: cart.id }));
     };
@@ -156,9 +159,10 @@ export class CartsService {
       if (!cart) {
         return ResultAsync.fromPromise(
           Promise.reject(new Error('Cart not found')),
-          (): CartError => ({
+          (originalError): CartError => ({
             type: errTypes.CART_NOT_FOUND,
             message: 'Cart not found for user',
+            originalError,
           }),
         );
       }
@@ -172,9 +176,10 @@ export class CartsService {
     return ({ cart }) => {
       return ResultAsync.fromPromise(
         this.repo.findCartProduct(cart.id, productId),
-        (): CartError => ({
+        (originalError): CartError => ({
           type: errTypes.CART_ITEM_NOT_FOUND,
           message: 'Failed to check if product exists in cart',
+          originalError,
         }),
       ).map((existingCartProduct) => ({ cart, existingCartProduct }));
     };
@@ -183,34 +188,16 @@ export class CartsService {
   private setCartItemQuantity(
     productId: number,
     quantity: number,
-  ): (
-    ctx: CartWithProductContext,
-  ) => ResultAsync<CartIdContext, CartError> {
+  ): (ctx: CartWithProductContext) => ResultAsync<CartIdContext, CartError> {
     return ({ cart }) => {
       return ResultAsync.fromPromise(
         this.repo.setCartProductQuantity(cart.id, productId, quantity),
-        (): CartError => ({
-          type: errTypes.PRODUCT_NOT_FOUND,
+        (originalError): CartError => ({
+          type: errTypes.PRODUCT_UPDATE_FAILED,
           message: 'Failed to update cart item quantity',
+          originalError,
         }),
       ).map(() => ({ cartId: cart.id }));
-    };
-  }
-
-  private validateCartExistsForRemove(): (
-    cart: CartWithCartProducts | null,
-  ) => ResultAsync<CartContext, CartError> {
-    return (cart) => {
-      if (!cart) {
-        return ResultAsync.fromPromise(
-          Promise.reject(new Error('Cart not found')),
-          (): CartError => ({
-            type: errTypes.CART_NOT_FOUND,
-            message: 'Cart not found for user',
-          }),
-        );
-      }
-      return okAsync({ cart });
     };
   }
 
@@ -221,9 +208,10 @@ export class CartsService {
       if (!ctx.existingCartProduct) {
         return ResultAsync.fromPromise(
           Promise.reject(new Error('Cart item not found')),
-          (): CartError => ({
+          (originalError): CartError => ({
             type: errTypes.CART_ITEM_NOT_FOUND,
             message: 'Cart item not found',
+            originalError,
           }),
         );
       }
@@ -233,15 +221,14 @@ export class CartsService {
 
   private removeCartProduct(
     itemId: number,
-  ): (
-    ctx: CartWithProductContext,
-  ) => ResultAsync<CartIdContext, CartError> {
+  ): (ctx: CartWithProductContext) => ResultAsync<CartIdContext, CartError> {
     return ({ cart, existingCartProduct }) => {
       return ResultAsync.fromPromise(
         this.repo.removeCartProduct(cart.id, existingCartProduct!.productId),
-        (): CartError => ({
-          type: errTypes.CART_ITEM_NOT_FOUND,
+        (originalError): CartError => ({
+          type: errTypes.CART_NOT_DELETED,
           message: 'Failed to remove cart item',
+          originalError,
         }),
       ).map(() => ({ cartId: cart.id }));
     };
@@ -253,17 +240,19 @@ export class CartsService {
     return ({ cartId }) => {
       return ResultAsync.fromPromise(
         this.repo.getCartById(cartId),
-        (): CartError => ({
+        (originalError): CartError => ({
           type: errTypes.CART_NOT_FOUND,
           message: 'Failed to retrieve updated cart',
+          originalError,
         }),
       ).andThen((cart) => {
         if (!cart) {
           return ResultAsync.fromPromise(
             Promise.reject(new Error('Cart not found')),
-            (): CartError => ({
+            (originalError): CartError => ({
               type: errTypes.CART_NOT_FOUND,
               message: 'Cart not found after update',
+              originalError,
             }),
           );
         }
