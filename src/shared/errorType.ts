@@ -1,6 +1,4 @@
-
-
 export interface errorType {
-    type: string
-    message: string
+  type: string;
+  message: string;
 }

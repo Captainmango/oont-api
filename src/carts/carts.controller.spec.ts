@@ -228,7 +228,8 @@ describe('CartsController', () => {
       });
       testProducts.push(product);
 
-      const result = await controller.addItemToCart(testUser.id, product.id, {
+      const result = await controller.addItemToCart(testUser.id, {
+        productId: product.id,
         quantity: 3,
       });
 
@@ -277,7 +278,8 @@ describe('CartsController', () => {
         },
       });
 
-      const result = await controller.addItemToCart(testUser.id, product.id, {
+      const result = await controller.addItemToCart(testUser.id, {
+        productId: product.id,
         quantity: 3,
       });
 
@@ -336,7 +338,8 @@ describe('CartsController', () => {
         },
       });
 
-      const result = await controller.addItemToCart(testUser.id, product2.id, {
+      const result = await controller.addItemToCart(testUser.id, {
+        productId: product2.id,
         quantity: 3,
       });
 
@@ -346,6 +349,98 @@ describe('CartsController', () => {
 
       const productIds = result.products.map((p) => p.id).sort();
       expect(productIds).toEqual([product1.id, product2.id].sort());
+    });
+  });
+
+  describe('updateCartItem', () => {
+    let testUser: { id: number; name: string; email: string } | null = null;
+    let testCart: { id: number } | null = null;
+    let testProduct: { id: number; name: string; quantity: number } | null =
+      null;
+
+    afterEach(async () => {
+      if (testCart) {
+        await prismaService.cartProduct
+          .deleteMany({ where: { cartId: testCart.id } })
+          .catch(() => {});
+        await prismaService.userCart
+          .deleteMany({ where: { cartId: testCart.id } })
+          .catch(() => {});
+        await prismaService.cart
+          .delete({ where: { id: testCart.id } })
+          .catch(() => {});
+        testCart = null;
+      }
+      if (testProduct) {
+        await prismaService.product
+          .delete({ where: { id: testProduct.id } })
+          .catch(() => {});
+        testProduct = null;
+      }
+      if (testUser) {
+        await prismaService.user
+          .delete({ where: { id: testUser.id } })
+          .catch(() => {});
+        testUser = null;
+      }
+    });
+
+    it('should update the quantity of an existing cart item', async () => {
+      testUser = await prismaService.user.create({
+        data: {
+          name: 'Test User Update Cart Item',
+          email: `test-update-cart-item-${Date.now()}@example.com`,
+        },
+      });
+
+      testProduct = await prismaService.product.create({
+        data: {
+          name: 'Test Product Update',
+          quantity: 10,
+        },
+      });
+
+      testCart = await prismaService.cart.create({
+        data: {
+          users: {
+            create: {
+              userId: testUser.id,
+            },
+          },
+          products: {
+            create: {
+              productId: testProduct.id,
+              quantity: 2,
+            },
+          },
+        },
+      });
+
+      const result = await controller.updateCartItem(
+        testUser.id,
+        testProduct.id,
+        {
+          quantity: 5,
+        },
+      );
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('products');
+      expect(Array.isArray(result.products)).toBe(true);
+      expect(result.products.length).toBe(1);
+      expect(result.products[0]).toHaveProperty('id');
+      expect(result.products[0].id).toBe(testProduct.id);
+
+      const cartProduct = await prismaService.cartProduct.findUnique({
+        where: {
+          cartId_productId: {
+            cartId: testCart.id,
+            productId: testProduct.id,
+          },
+        },
+      });
+      expect(cartProduct?.quantity).toBe(5);
     });
   });
 });

@@ -1,0 +1,17 @@
+import { errorType } from '@app/shared/errorType';
+
+export const errTypes = {
+  CART_NOT_FOUND: 'CART_NOT_FOUND',
+  PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
+  CART_ITEM_NOT_FOUND: 'CART_ITEM_NOT_FOUND',
+} as const;
+
+export interface AddItemToCartError extends errorType {
+  type: keyof typeof errTypes;
+  message: string;
+}
+
+export interface UpdateCartItemError extends errorType {
+  type: keyof typeof errTypes;
+  message: string;
+}

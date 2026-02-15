@@ -114,4 +114,25 @@ export class CartsRepository {
       },
     });
   }
+
+  async setCartProductQuantity(
+    cartId: number,
+    productId: number,
+    quantity: number,
+  ) {
+    return this.prisma.cartProduct.update({
+      where: {
+        cartId_productId: {
+          cartId,
+          productId,
+        },
+      },
+      data: {
+        quantity,
+      },
+      include: {
+        product: true,
+      },
+    });
+  }
 }
