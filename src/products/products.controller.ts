@@ -12,7 +12,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 import { ProductEntity } from '@app/shared/entities/product.entity';
-import { errTypes } from './errors';
 
 @ApiTags('products')
 @Controller({

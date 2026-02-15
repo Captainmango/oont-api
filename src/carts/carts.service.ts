@@ -101,9 +101,9 @@ export class CartsService {
       this.repo.deleteUserCart(userId),
       (): DeleteCartError => ({
         type: errTypes.CART_NOT_DELETED,
-        message: 'Unable to delete cart'
-      })
-    )
+        message: 'Unable to delete cart',
+      }),
+    );
   }
 
   private getOrCreateCart(

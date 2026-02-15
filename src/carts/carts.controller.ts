@@ -126,7 +126,7 @@ export class CartsController {
     const result = await this.cartsService.deleteUserCart(userId);
 
     if (result.isErr()) {
-      const error = result.error
+      const error = result.error;
       if (
         error.type === errTypes.CART_NOT_FOUND ||
         error.type === errTypes.CART_ITEM_NOT_FOUND ||

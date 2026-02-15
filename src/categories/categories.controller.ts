@@ -9,7 +9,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CategoriesListDto } from './dtos/categoriesList.dto';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
-import { errTypes } from './errors';
 
 @ApiTags('categories')
 @Controller({
