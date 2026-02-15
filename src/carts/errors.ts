@@ -14,27 +14,27 @@ export type CartError =
   | FindCartError
   | DeleteCartError;
 
-export interface AddItemToCartError extends errorType {
+interface AddItemToCartError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }
 
-export interface UpdateCartItemError extends errorType {
+interface UpdateCartItemError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }
 
-export interface RemoveItemFromCartError extends errorType {
+interface RemoveItemFromCartError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }
 
-export interface FindCartError extends errorType {
+interface FindCartError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }
 
-export interface DeleteCartError extends errorType {
+interface DeleteCartError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }

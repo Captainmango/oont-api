@@ -4,8 +4,7 @@ import { CategoriesListDto } from './dtos/categoriesList.dto';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { ResultAsync } from 'neverthrow';
 import {
-  GetAllCategoriesError,
-  GetProductsByCategoryError,
+  CategoryError,
   errTypes,
 } from './errors';
 
@@ -13,10 +12,10 @@ import {
 export class CategoriesService {
   constructor(private readonly repo: CategoriesRepository) {}
 
-  getAll(): ResultAsync<CategoriesListDto, GetAllCategoriesError> {
+  getAll(): ResultAsync<CategoriesListDto, CategoryError> {
     return ResultAsync.fromPromise(
       this.repo.findAll(),
-      (): GetAllCategoriesError => ({
+      (): CategoryError => ({
         type: errTypes.CATEGORIES_NOT_FOUND,
         message: 'Failed to retrieve categories',
       }),
@@ -25,10 +24,10 @@ export class CategoriesService {
 
   getAllProductsByCategoryId(
     categoryId: number,
-  ): ResultAsync<ProductsListDto, GetProductsByCategoryError> {
+  ): ResultAsync<ProductsListDto, CategoryError> {
     return ResultAsync.fromPromise(
       this.repo.findProductsByCategoryId(categoryId),
-      (): GetProductsByCategoryError => ({
+      (): CategoryError => ({
         type: errTypes.PRODUCTS_NOT_FOUND,
         message: 'Failed to retrieve products for category',
       }),
