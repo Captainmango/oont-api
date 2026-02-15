@@ -4,6 +4,7 @@ export const errTypes = {
   CART_NOT_FOUND: 'CART_NOT_FOUND',
   PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
   CART_ITEM_NOT_FOUND: 'CART_ITEM_NOT_FOUND',
+  CART_NOT_DELETED: 'CART_NOT_DELETED',
 } as const;
 
 export interface AddItemToCartError extends errorType {
@@ -17,6 +18,16 @@ export interface UpdateCartItemError extends errorType {
 }
 
 export interface RemoveItemFromCartError extends errorType {
+  type: keyof typeof errTypes;
+  message: string;
+}
+
+export interface FindCartError extends errorType {
+  type: keyof typeof errTypes;
+  message: string;
+}
+
+export interface DeleteCartError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }

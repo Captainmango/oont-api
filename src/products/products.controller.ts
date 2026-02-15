@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Param,
@@ -11,6 +12,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 import { ProductEntity } from '@app/shared/entities/product.entity';
+import { errTypes } from './errors';
 
 @ApiTags('products')
 @Controller({
@@ -24,13 +26,30 @@ export class ProductsController {
   async getAllProducts(
     @Query(new ValidationPipe({ transform: true })) query: GetAllProductsDto,
   ): Promise<ProductsListDto> {
-    return await this.productsService.getAll(query.page, query.pageSize);
+    const result = await this.productsService.getAll(
+      query.page,
+      query.pageSize,
+    );
+
+    if (result.isErr()) {
+      const error = result.error;
+      throw new BadRequestException(error.message);
+    }
+
+    return result.value;
   }
 
   @Get('/:id')
   async getProductById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ProductEntity | null> {
-    return await this.productsService.getById(id);
+    const result = await this.productsService.getById(id);
+
+    if (result.isErr()) {
+      const error = result.error;
+      throw new BadRequestException(error.message);
+    }
+
+    return result.value;
   }
 }

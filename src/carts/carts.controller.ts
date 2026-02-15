@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -26,13 +28,21 @@ export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
   @Get('/:userId')
+  @HttpCode(HttpStatus.OK)
   async getUserCart(
     @Param('userId', new ParseIntPipe()) userId: number,
   ): Promise<CartEntity | null> {
-    return this.cartsService.getUserCart(userId);
+    const result = await this.cartsService.getUserCart(userId);
+
+    if (result.isErr()) {
+      throw new BadRequestException(result.error.message);
+    }
+
+    return result.value;
   }
 
   @Post('/:userId/items')
+  @HttpCode(HttpStatus.OK)
   async addItemToCart(
     @Param('userId', new ParseIntPipe()) userId: number,
     @Body() addItemToCartDto: AddItemToCartDto,
@@ -58,6 +68,7 @@ export class CartsController {
   }
 
   @Put('/:userId/items/:itemId')
+  @HttpCode(HttpStatus.OK)
   async updateCartItem(
     @Param('userId', new ParseIntPipe()) userId: number,
     @Param('itemId', new ParseIntPipe()) itemId: number,
@@ -84,15 +95,13 @@ export class CartsController {
     return result.value;
   }
 
-  @Delete("/:userId/items/:itemId")
+  @Delete('/:userId/items/:itemId')
+  @HttpCode(HttpStatus.OK)
   async removeItemFromCart(
     @Param('userId', new ParseIntPipe()) userId: number,
-    @Param('itemId', new ParseIntPipe()) itemId: number
+    @Param('itemId', new ParseIntPipe()) itemId: number,
   ) {
-    const result = await this.cartsService.removeItemFromCart(
-      userId,
-      itemId
-    )
+    const result = await this.cartsService.removeItemFromCart(userId, itemId);
 
     if (result.isErr()) {
       const error = result.error;
@@ -109,10 +118,23 @@ export class CartsController {
     return result.value;
   }
 
-  @Delete("/:userId")
+  @Delete('/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCart(
-    @Param('userId', new ParseIntPipe()) userId: number
+    @Param('userId', new ParseIntPipe()) userId: number,
   ): Promise<void> {
-    return await this.cartsService.deleteUserCart(userId)
+    const result = await this.cartsService.deleteUserCart(userId);
+
+    if (result.isErr()) {
+      const error = result.error
+      if (
+        error.type === errTypes.CART_NOT_FOUND ||
+        error.type === errTypes.CART_ITEM_NOT_FOUND ||
+        error.type === errTypes.PRODUCT_NOT_FOUND
+      ) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 }
