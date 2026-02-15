@@ -3,7 +3,12 @@ import { CartsRepository } from './carts.repository';
 import { CartEntity } from '@app/shared/entities/cart.entity';
 import { CartWithCartProducts } from './dtos/cartWithProducts.dto';
 import { ResultAsync, ok } from 'neverthrow';
-import { AddItemToCartError, UpdateCartItemError, errTypes } from './errors';
+import {
+  AddItemToCartError,
+  RemoveItemFromCartError,
+  UpdateCartItemError,
+  errTypes,
+} from './errors';
 
 @Injectable()
 export class CartsService {
@@ -175,5 +180,85 @@ export class CartsService {
           ),
         };
       });
+  }
+
+  removeItemFromCart(
+    userId: number,
+    itemId: number,
+  ): ResultAsync<CartEntity, RemoveItemFromCartError> {
+    return ResultAsync.fromPromise(
+      this.repo.findMostRecentCartByUserId(userId),
+      (): RemoveItemFromCartError => ({
+        type: errTypes.CART_NOT_FOUND,
+        message: 'Unable to find user cart',
+      }),
+    )
+      .andThen((cart) => {
+        if (!cart) {
+          return ResultAsync.fromPromise(
+            Promise.reject(new Error('Cart not found')),
+            (): UpdateCartItemError => ({
+              type: errTypes.CART_NOT_FOUND,
+              message: 'Cart not found for user',
+            }),
+          );
+        }
+        return ok(cart);
+      })
+      .andThen((cart) => {
+        return ResultAsync.fromPromise(
+          this.repo.findCartProduct(cart.id, itemId),
+          (): RemoveItemFromCartError => ({
+            type: errTypes.CART_ITEM_NOT_FOUND,
+            message: 'Cart item not found',
+          }),
+        ).map((existingCartProduct) => ({ cart, existingCartProduct }));
+      })
+      .andThen(({ cart, existingCartProduct }) => {
+        if (!existingCartProduct) {
+          return ResultAsync.fromPromise(
+            Promise.reject(new Error('Cart item not found')),
+            (): RemoveItemFromCartError => ({
+              type: errTypes.CART_ITEM_NOT_FOUND,
+              message: 'Cart item not found',
+            }),
+          );
+        }
+
+        return ResultAsync.fromPromise(
+          this.repo.removeCartProduct(cart.id, existingCartProduct.productId),
+          (): RemoveItemFromCartError => ({
+            type: errTypes.CART_ITEM_NOT_FOUND,
+            message: 'Failed to remove cart item',
+          }),
+        ).map(() => ({ cartId: cart.id }));
+      })
+      .andThen(({ cartId }) => {
+        return ResultAsync.fromPromise(
+          this.repo.getCartById(cartId),
+          (): RemoveItemFromCartError => ({
+            type: errTypes.CART_NOT_FOUND,
+            message: 'Unable to find cart after item update',
+          }),
+        );
+      })
+      .map((updatedCart) => {
+        if (!updatedCart) {
+          throw new BadRequestException('Cart not found after update');
+        }
+
+        return {
+          ...updatedCart,
+          products: updatedCart.products.map(
+            (cartProduct) => cartProduct.product,
+          ),
+        };
+      });
+  }
+
+  async deleteUserCart(
+    userId: number
+  ): Promise<void> {
+    return await this.repo.deleteUserCart(userId)
   }
 }

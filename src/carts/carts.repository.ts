@@ -135,4 +135,47 @@ export class CartsRepository {
       },
     });
   }
+
+  async removeCartProduct(cartId: number, productId: number) {
+    return this.prisma.cartProduct.delete({
+      where: {
+        cartId_productId: {
+          cartId,
+          productId,
+        },
+      },
+    });
+  }
+
+  async deleteUserCart(userId: number) {
+    const userCart = await this.prisma.userCart.findFirst({
+      where: {
+        userId,
+        cart: {
+          deleted_at: null,
+        },
+      },
+      include: {
+        cart: true,
+      },
+      orderBy: {
+        cart: {
+          created_at: 'desc',
+        },
+      },
+    });
+
+    if (!userCart) {
+      return;
+    }
+
+    await this.prisma.cart.update({
+      where: {
+        id: userCart.cartId,
+      },
+      data: {
+        deleted_at: new Date(),
+      },
+    });
+  }
 }

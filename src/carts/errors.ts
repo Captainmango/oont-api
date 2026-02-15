@@ -15,3 +15,8 @@ export interface UpdateCartItemError extends errorType {
   type: keyof typeof errTypes;
   message: string;
 }
+
+export interface RemoveItemFromCartError extends errorType {
+  type: keyof typeof errTypes;
+  message: string;
+}

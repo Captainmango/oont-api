@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -81,5 +82,37 @@ export class CartsController {
     }
 
     return result.value;
+  }
+
+  @Delete("/:userId/items/:itemId")
+  async removeItemFromCart(
+    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('itemId', new ParseIntPipe()) itemId: number
+  ) {
+    const result = await this.cartsService.removeItemFromCart(
+      userId,
+      itemId
+    )
+
+    if (result.isErr()) {
+      const error = result.error;
+      if (
+        error.type === errTypes.CART_NOT_FOUND ||
+        error.type === errTypes.CART_ITEM_NOT_FOUND ||
+        error.type === errTypes.PRODUCT_NOT_FOUND
+      ) {
+        throw new NotFoundException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+
+    return result.value;
+  }
+
+  @Delete("/:userId")
+  async deleteCart(
+    @Param('userId', new ParseIntPipe()) userId: number
+  ): Promise<void> {
+    return await this.cartsService.deleteUserCart(userId)
   }
 }
