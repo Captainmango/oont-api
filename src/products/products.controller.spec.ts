@@ -8,6 +8,7 @@ import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 describe('ProductsController', () => {
   let controller: ProductsController;
   let prismaService: PrismaService;
+  let testProducts: { id: number; name: string; quantity: number }[] = [];
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -16,6 +17,30 @@ describe('ProductsController', () => {
 
     controller = module.get<ProductsController>(ProductsController);
     prismaService = module.get<PrismaService>(PrismaService);
+  });
+
+  beforeEach(async () => {
+    testProducts = [];
+
+    const product1 = await prismaService.product.create({
+      data: { name: 'Test Product 1', quantity: 10 },
+    });
+    const product2 = await prismaService.product.create({
+      data: { name: 'Test Product 2', quantity: 20 },
+    });
+    const product3 = await prismaService.product.create({
+      data: { name: 'Test Product 3', quantity: 30 },
+    });
+
+    testProducts = [product1, product2, product3];
+  });
+
+  afterEach(async () => {
+    for (const product of testProducts) {
+      await prismaService.product
+        .delete({ where: { id: product.id } })
+        .catch(() => {});
+    }
   });
 
   afterAll(async () => {
@@ -30,23 +55,23 @@ describe('ProductsController', () => {
       expect(result).toBeDefined();
       expect(result.products).toBeDefined();
       expect(Array.isArray(result.products)).toBe(true);
+      expect(result.products.length).toBeGreaterThanOrEqual(3);
     });
 
     it('should return products with correct data structure', async () => {
       const queryDto: GetAllProductsDto = {};
       const result = await controller.getAllProducts(queryDto);
 
-      if (result.products.length > 0) {
-        const product = result.products[0];
-        expect(product).toHaveProperty('id');
-        expect(product).toHaveProperty('name');
-        expect(product).toHaveProperty('quantity');
-        expect(product).toHaveProperty('created_at');
-        expect(product).toHaveProperty('updated_at');
-        expect(typeof product.id).toBe('number');
-        expect(typeof product.name).toBe('string');
-        expect(typeof product.quantity).toBe('number');
-      }
+      const product = result.products.find((p) => p.id === testProducts[0].id);
+      expect(product).toBeDefined();
+      expect(product).toHaveProperty('id');
+      expect(product).toHaveProperty('name');
+      expect(product).toHaveProperty('quantity');
+      expect(product).toHaveProperty('created_at');
+      expect(product).toHaveProperty('updated_at');
+      expect(typeof product?.id).toBe('number');
+      expect(typeof product?.name).toBe('string');
+      expect(typeof product?.quantity).toBe('number');
     });
 
     it('should support pagination with page and pageSize', async () => {
@@ -79,18 +104,7 @@ describe('ProductsController', () => {
 
   describe('getProductById', () => {
     it('should return a product when given a valid id', async () => {
-      const allProducts = await controller.getAllProducts({
-        page: 1,
-        pageSize: 1,
-      });
-
-      if (allProducts.products.length === 0) {
-        throw new Error(
-          'There is no data in the database. Have you run the seeder?',
-        );
-      }
-
-      const productId = allProducts.products[0].id;
+      const productId = testProducts[0].id;
       const result = await controller.getProductById(productId);
 
       expect(result).toBeDefined();
@@ -108,18 +122,7 @@ describe('ProductsController', () => {
     });
 
     it('should return product with correct data structure', async () => {
-      const allProducts = await controller.getAllProducts({
-        page: 1,
-        pageSize: 1,
-      });
-
-      if (allProducts.products.length === 0) {
-        throw new Error(
-          'There is no data in the database. Have you run the seeder?',
-        );
-      }
-
-      const productId = allProducts.products[0].id;
+      const productId = testProducts[0].id;
       const result = await controller.getProductById(productId);
 
       expect(result).toHaveProperty('id');
