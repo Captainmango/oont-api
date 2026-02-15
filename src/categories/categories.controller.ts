@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CategoriesListDto } from './dtos/categoriesList.dto';
-import { ProductsListDto } from '@app/products/dtos/productsList.dto';
+import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 
 @ApiTags('categories')
 @Controller({

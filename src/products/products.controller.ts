@@ -8,9 +8,9 @@ import {
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ApiTags } from '@nestjs/swagger';
-import { ProductsListDto } from './dtos/productsList.dto';
+import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { GetAllProductsDto } from './dtos/getAllProducts.dto';
-import { ProductEntity } from './product.entity';
+import { ProductEntity } from '@app/shared/entities/product.entity';
 
 @ApiTags('products')
 @Controller({
