@@ -282,4 +282,232 @@ describe('OrdersController', () => {
       ).rejects.toThrow('Cart not found');
     });
   });
+
+  describe('getOrder', () => {
+    let testUser: { id: number; name: string; email: string } | null = null;
+    let testProducts: { id: number; name: string; quantity: number }[] = [];
+    let testOrder: { id: number } | null = null;
+
+    afterEach(async () => {
+      if (testOrder) {
+        await prismaService.orderProduct
+          .deleteMany({ where: { orderId: testOrder.id } })
+          .catch(() => {});
+        await prismaService.userOrder
+          .deleteMany({ where: { orderId: testOrder.id } })
+          .catch(() => {});
+        await prismaService.order
+          .delete({ where: { id: testOrder.id } })
+          .catch(() => {});
+        testOrder = null;
+      }
+      for (const product of testProducts) {
+        await prismaService.product
+          .delete({ where: { id: product.id } })
+          .catch(() => {});
+      }
+      testProducts = [];
+      if (testUser) {
+        await prismaService.user
+          .delete({ where: { id: testUser.id } })
+          .catch(() => {});
+        testUser = null;
+      }
+    });
+
+    it('should return an order by id', async () => {
+      testUser = await prismaService.user.create({
+        data: {
+          name: 'Test User Get Order',
+          email: `test-get-order-${Date.now()}@example.com`,
+        },
+      });
+
+      const product1 = await prismaService.product.create({
+        data: {
+          name: 'Test Product Get Order 1',
+          quantity: 10,
+        },
+      });
+      testProducts.push(product1);
+
+      const product2 = await prismaService.product.create({
+        data: {
+          name: 'Test Product Get Order 2',
+          quantity: 5,
+        },
+      });
+      testProducts.push(product2);
+
+      const createdOrder = await prismaService.order.create({
+        data: {
+          status: 'Pending',
+          users: {
+            create: {
+              userId: testUser.id,
+            },
+          },
+          products: {
+            create: [
+              {
+                productId: product1.id,
+                quantity: 2,
+              },
+              {
+                productId: product2.id,
+                quantity: 1,
+              },
+            ],
+          },
+        },
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+      testOrder = { id: createdOrder.id };
+
+      const result = await controller.getOrder(createdOrder.id);
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(createdOrder.id);
+      expect(result.status).toBe('Pending');
+      expect(result.products).toHaveLength(2);
+
+      const productIds = result.products.map((p) => p.id).sort();
+      expect(productIds).toEqual([product1.id, product2.id].sort());
+    });
+  });
+
+  describe('cancelOrder', () => {
+    let testUser: { id: number; name: string; email: string } | null = null;
+    let testProducts: { id: number; name: string; quantity: number }[] = [];
+    let testOrder: { id: number } | null = null;
+
+    afterEach(async () => {
+      if (testOrder) {
+        await prismaService.orderProduct
+          .deleteMany({ where: { orderId: testOrder.id } })
+          .catch(() => {});
+        await prismaService.userOrder
+          .deleteMany({ where: { orderId: testOrder.id } })
+          .catch(() => {});
+        await prismaService.order
+          .delete({ where: { id: testOrder.id } })
+          .catch(() => {});
+        testOrder = null;
+      }
+      for (const product of testProducts) {
+        await prismaService.product
+          .delete({ where: { id: product.id } })
+          .catch(() => {});
+      }
+      testProducts = [];
+      if (testUser) {
+        await prismaService.user
+          .delete({ where: { id: testUser.id } })
+          .catch(() => {});
+        testUser = null;
+      }
+    });
+
+    it('should cancel an order and restore product quantities', async () => {
+      testUser = await prismaService.user.create({
+        data: {
+          name: 'Test User Cancel Order',
+          email: `test-cancel-order-${Date.now()}@example.com`,
+        },
+      });
+
+      const product1 = await prismaService.product.create({
+        data: {
+          name: 'Test Product Cancel 1',
+          quantity: 10,
+        },
+      });
+      testProducts.push(product1);
+
+      const product2 = await prismaService.product.create({
+        data: {
+          name: 'Test Product Cancel 2',
+          quantity: 5,
+        },
+      });
+      testProducts.push(product2);
+
+      const createdOrder = await prismaService.order.create({
+        data: {
+          status: 'Pending',
+          users: {
+            create: {
+              userId: testUser.id,
+            },
+          },
+          products: {
+            create: [
+              {
+                productId: product1.id,
+                quantity: 3,
+              },
+              {
+                productId: product2.id,
+                quantity: 2,
+              },
+            ],
+          },
+        },
+        include: {
+          products: true,
+        },
+      });
+      testOrder = { id: createdOrder.id };
+
+      await prismaService.product.update({
+        where: { id: product1.id },
+        data: { quantity: 7 },
+      });
+      await prismaService.product.update({
+        where: { id: product2.id },
+        data: { quantity: 3 },
+      });
+
+      const product1BeforeCancel = await prismaService.product.findUnique({
+        where: { id: product1.id },
+      });
+      const product2BeforeCancel = await prismaService.product.findUnique({
+        where: { id: product2.id },
+      });
+      expect(product1BeforeCancel?.quantity).toBe(7);
+      expect(product2BeforeCancel?.quantity).toBe(3);
+
+      const result = await controller.cancelOrder(createdOrder.id);
+
+      expect(result).toBeUndefined();
+
+      const cancelledOrder = await prismaService.order.findUnique({
+        where: { id: createdOrder.id },
+      });
+      expect(cancelledOrder?.status).toBe('Cancelled');
+
+      const product1AfterCancel = await prismaService.product.findUnique({
+        where: { id: product1.id },
+      });
+      const product2AfterCancel = await prismaService.product.findUnique({
+        where: { id: product2.id },
+      });
+      expect(product1AfterCancel?.quantity).toBe(10);
+      expect(product2AfterCancel?.quantity).toBe(5);
+    });
+
+    it('should throw error when order does not exist', async () => {
+      const nonExistentOrderId = 99999;
+
+      await expect(
+        controller.cancelOrder(nonExistentOrderId),
+      ).rejects.toThrow();
+    });
+  });
 });

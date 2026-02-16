@@ -51,7 +51,29 @@ export class OrdersService {
       .andThen(this.validateCartNotEmpty())
       .andThen(this.extractCartProducts(userId))
       .andThen(this.createOrder())
-      .map(this.transformToEntity());
+      .map((ctx) => this.transformToEntity(ctx.order));
+  }
+
+  getOrder(orderId: number): ResultAsync<OrderEntity, OrderError> {
+    return ResultAsync.fromPromise(
+      this.repo.getOrderById(orderId),
+      (originalError): OrderError => ({
+        type: errTypes.ORDER_NOT_FOUND,
+        message: 'Unable to find order',
+        originalError,
+      }),
+    ).map((order) => this.transformToEntity(order));
+  }
+
+  cancelOrder(orderId: number): ResultAsync<void, OrderError> {
+    return ResultAsync.fromPromise(
+      this.repo.reverseOrder(orderId),
+      (originalError): OrderError => ({
+        type: errTypes.ORDER_NOT_FOUND,
+        message: 'Unable to find order',
+        originalError,
+      }),
+    ).map(() => undefined);
   }
 
   private validateCartExists(): (
@@ -126,14 +148,14 @@ export class OrdersService {
     };
   }
 
-  private transformToEntity(): (ctx: CreatedOrderContext) => OrderEntity {
-    return ({ order }) => ({
+  private transformToEntity(order: OrderWithProducts): OrderEntity {
+    return {
       id: order.id,
       status: order.status,
       products: order.products.map((op) => op.product),
       created_at: order.created_at,
       updated_at: order.updated_at,
       deleted_at: order.deleted_at,
-    });
+    };
   }
 }

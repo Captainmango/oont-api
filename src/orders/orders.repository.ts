@@ -106,4 +106,72 @@ export class OrdersRepository {
       },
     );
   }
+
+  async getOrderById(orderId: number) {
+    return await this.prisma.order.findUniqueOrThrow({
+      where: {
+        id: orderId,
+      },
+      include: {
+        products: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+  }
+
+  async reverseOrder(orderId: number) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.order.findUnique({
+          where: {
+            id: orderId,
+          },
+          include: {
+            products: true,
+          },
+        });
+
+        if (!order) {
+          throw new Error(`Order ${orderId} not found`);
+        }
+
+        for (const orderProduct of order.products) {
+          await tx.product.update({
+            where: {
+              id: orderProduct.productId,
+            },
+            data: {
+              quantity: {
+                increment: orderProduct.quantity,
+              },
+            },
+          });
+        }
+
+        const updatedOrder = await tx.order.update({
+          where: {
+            id: orderId,
+          },
+          data: {
+            status: OrderStatus.Cancelled,
+          },
+          include: {
+            products: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
+
+        return updatedOrder;
+      },
+      {
+        isolationLevel: 'ReadCommitted',
+      },
+    );
+  }
 }

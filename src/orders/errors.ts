@@ -5,6 +5,7 @@ export const errTypes = {
   CART_EMPTY: 'CART_EMPTY',
   ORDER_CREATION_FAILED: 'ORDER_CREATION_FAILED',
   INSUFFICIENT_STOCK: 'INSUFFICIENT_STOCK',
+  ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
 } as const;
 
 export interface OrderError extends ErrorType {
