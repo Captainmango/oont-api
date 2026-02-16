@@ -22,6 +22,32 @@ export class OrdersRepository {
 
         const productIds = cartProducts.map((cp) => cp.productId);
 
+        const lockedProducts = await tx.$queryRaw<
+          { id: number; quantity: number }[]
+        >`
+          SELECT id, quantity FROM "products"
+          WHERE id = ANY(${productIds}::int[])
+          FOR UPDATE
+        `;
+
+        const productMap = new Map(lockedProducts.map((p) => [p.id, p]));
+
+        for (const cartProduct of cartProducts) {
+          const product = productMap.get(cartProduct.productId);
+
+          if (!product) {
+            throw new Error(`Product ${cartProduct.productId} not found`);
+          }
+
+          if (cartProduct.quantity > product.quantity) {
+            throw new InsufficientStockError(
+              cartProduct.productId,
+              cartProduct.quantity,
+              product.quantity,
+            );
+          }
+        }
+
         const updateResult = await tx.$executeRaw`
         UPDATE "products"
         SET quantity = quantity - CASE id
@@ -45,33 +71,6 @@ export class OrdersRepository {
       `;
 
         if (updateResult !== cartProducts.length) {
-          const products = await tx.product.findMany({
-            where: {
-              id: {
-                in: productIds,
-              },
-            },
-          });
-
-          const productMap = new Map(products.map((p) => [p.id, p]));
-
-          for (const cartProduct of cartProducts) {
-            const product = productMap.get(cartProduct.productId);
-
-            if (!product) {
-              throw new Error(`Product ${cartProduct.productId} not found`);
-            }
-
-            if (cartProduct.quantity > product.quantity) {
-              throw new InsufficientStockError(
-                cartProduct.productId,
-                cartProduct.quantity,
-                product.quantity,
-              );
-            }
-          }
-
-          // Bail out because something went very wrong
           throw new Error('Failed to update product quantities');
         }
 

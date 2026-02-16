@@ -1,98 +1,38 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# OoNt API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend interview task submission. The project was built with `Bun` but will work with NodeJS. The Node version used is 22.17.1. The Bun version used is 1.3.9.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### Usage
 
-## Description
+Set up a `.env` file. The minimum needed is in the `.env.example` file.
+> APP_PORT can be set by adding `PORT` envvar.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Use `docker compose up -d` To build and start the application. By default the application is available at `http://localhost:3000`. OpenAPI docs are available at `http://localhost:3000/api/v1/docs`.
 
-## Project setup
+Run the seeder with `bun run db:seed`
 
-```bash
-$ npm install
-```
+### Tests
 
-## Compile and run the project
+1. Run `bun install` or `npm install`
+2. Start the testing Docker compose set up (just Postgres) `docker compose -f docker-compose.dev.yml up -d`
+3. Run tests `bun run test`
 
-```bash
-# development
-$ npm run start
+## Design
 
-# watch mode
-$ npm run start:dev
+The application follows a layered architecture, with an explicity service layer and abstracted data layer. Neverthrow is used to manage error handling in a clean way as well as structuring the project for fast and safe development. The approach of creating a set of steps that transform some data is called [Railway Oriented Programming](https://www.youtube.com/watch?v=fYo3LN9Vf_M) and is a great way to structure error paths alongside happy paths. It also leads to explicit error handling, helping with debugging and reasoning about a system.
 
-# production mode
-$ npm run start:prod
-```
 
-## Run tests
+## Concurrency Strategy
 
-```bash
-# unit tests
-$ npm run test
+The concurrency concerns on product stock quantity are handled in two ways:
 
-# e2e tests
-$ npm run test:e2e
+1. A soft check is performed when attempting to add an item to the cart. This is so that we don't try and checkout with a quantity we know won't work.
+2. A hard check when making the stock changes on the product rows. This is so that if any stock quantity fails the check, we roll everything back.
 
-# test coverage
-$ npm run test:cov
-```
+The soft check happens with an `ACCESS SHARE` table lock. This does not prevent concurrent reads from anyone else adding products to their carts. We do not want to decrement the stock count before the user attempts to checkout as we cannot guarantee that the product would actually be purchased. We also do not want to manage stock counts for customers simply shopping.
 
-## Deployment
+The hard check happens with a `ROW SHARE` lock. SELECT ... FOR UPDATE places this lock on the rows returned by the query, preventing anyone else from reading them. This is wrapped within a transaction meaning the lock is held until it commits or rollsback. The hard check is carried out in the case the stock changed before the user checked out their cart. If we don't do this, it is possible to oversell.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+It's reasonable to question why we would even do the soft check in the first place. The reason for this is pretty simple. Stock changes are dynamic and happen all the time. We want to manage customer expectations. If there are 5 items left and they want 3 of them, someone _could_ purchase 4 in the time they attempt to add them to the cart. In this case, we would allow them to add the quantity to the cart, only to fail to checkout as the quantity is no longer there. This double locking approach is more performance heavy, but it means customers will have better experiences when proceeding through their journey so is a worth while trade off.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+The Isolation Level is kept at Read Commited (Postgres' default). Serializable would be too disruptive and Repeatable Read would allow phantom reads, violating Isolation. The soft check does suffer from a TOCTOU (Time Of Check Time Of Use) race condition, but the hard check handles this gracefully and performantly. Locks are only held for as long as they are needed.
