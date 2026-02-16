@@ -19,6 +19,7 @@ import { CartEntity } from '@app/shared/entities/cart.entity';
 import { AddItemToCartDto } from './dtos/addItemToCart.dto';
 import { errTypes } from './errors';
 import { UpdateCartItemDto } from './dtos/updateCartItem.dto';
+import { ValidateUserExistsPipe } from '@app/users/pipes/validate-user-exists.pipe';
 
 @ApiTags('carts')
 @Controller({
@@ -31,7 +32,7 @@ export class CartsController {
   @Get('/:userId')
   @HttpCode(HttpStatus.OK)
   async getUserCart(
-    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('userId', new ParseIntPipe(), ValidateUserExistsPipe) userId: number,
   ): Promise<CartEntity | null> {
     const result = await this.cartsService.getUserCart(userId);
 
@@ -51,7 +52,7 @@ export class CartsController {
   @Post('/:userId/items')
   @HttpCode(HttpStatus.OK)
   async addItemToCart(
-    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('userId', new ParseIntPipe(), ValidateUserExistsPipe) userId: number,
     @Body() addItemToCartDto: AddItemToCartDto,
   ): Promise<CartEntity> {
     const result = await this.cartsService.addItemToCart(
@@ -84,7 +85,7 @@ export class CartsController {
   @Put('/:userId/items/:itemId')
   @HttpCode(HttpStatus.OK)
   async updateCartItem(
-    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('userId', new ParseIntPipe(), ValidateUserExistsPipe) userId: number,
     @Param('itemId', new ParseIntPipe()) itemId: number,
     @Body() updateCartItemsDto: UpdateCartItemDto,
   ): Promise<CartEntity> {
@@ -118,7 +119,7 @@ export class CartsController {
   @Delete('/:userId/items/:itemId')
   @HttpCode(HttpStatus.OK)
   async removeItemFromCart(
-    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('userId', new ParseIntPipe(), ValidateUserExistsPipe) userId: number,
     @Param('itemId', new ParseIntPipe()) itemId: number,
   ): Promise<CartEntity> {
     const result = await this.cartsService.removeItemFromCart(userId, itemId);
@@ -146,7 +147,7 @@ export class CartsController {
   @Delete('/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCart(
-    @Param('userId', new ParseIntPipe()) userId: number,
+    @Param('userId', new ParseIntPipe(), ValidateUserExistsPipe) userId: number,
   ): Promise<void> {
     const result = await this.cartsService.deleteUserCart(userId);
 

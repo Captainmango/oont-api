@@ -8,10 +8,11 @@ import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 describe('ProductsController', () => {
   let controller: ProductsController;
   let prismaService: PrismaService;
+  let module: TestingModule;
   let testProducts: { id: number; name: string; quantity: number }[] = [];
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [PrismaModule, ProductModule],
     }).compile();
 
@@ -44,6 +45,7 @@ describe('ProductsController', () => {
   });
 
   afterAll(async () => {
+    await module.close();
     await prismaService.$disconnect();
   });
 

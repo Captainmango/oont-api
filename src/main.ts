@@ -24,5 +24,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-// eslint-disable-next-line // No need to catch here
+// eslint-disable-next-line
 bootstrap();

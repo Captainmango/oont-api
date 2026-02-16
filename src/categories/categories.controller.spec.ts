@@ -7,11 +7,12 @@ import { PrismaModule } from '@app/prisma/prisma.module';
 describe('CategoriesController', () => {
   let controller: CategoriesContoller;
   let prismaService: PrismaService;
+  let module: TestingModule;
   let testCategory: { id: number; name: string } | null = null;
   let testProducts: { id: number; name: string; quantity: number }[] = [];
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [PrismaModule, CategoryModule],
     }).compile();
 
@@ -20,6 +21,7 @@ describe('CategoriesController', () => {
   });
 
   afterAll(async () => {
+    await module.close();
     await prismaService.$disconnect();
   });
 

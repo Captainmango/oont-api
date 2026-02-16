@@ -8,9 +8,10 @@ import { ProductEntity } from '@app/shared/entities/product.entity';
 describe('CartsController', () => {
   let controller: CartsController;
   let prismaService: PrismaService;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [PrismaModule, CartsModule],
     }).compile();
 
@@ -19,6 +20,7 @@ describe('CartsController', () => {
   });
 
   afterAll(async () => {
+    await module.close();
     await prismaService.$disconnect();
   });
 

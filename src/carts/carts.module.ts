@@ -3,10 +3,13 @@ import { Module } from '@nestjs/common';
 import { CartsController } from './carts.controller';
 import { CartsService } from './carts.service';
 import { CartsRepository } from './carts.repository';
+import { UsersModule } from '@app/users/users.module';
+import { ValidateUserExistsPipe } from '@app/users/pipes/validate-user-exists.pipe';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, UsersModule],
   controllers: [CartsController],
-  providers: [CartsService, CartsRepository],
+  providers: [CartsService, CartsRepository, ValidateUserExistsPipe],
+  exports: [CartsService],
 })
 export class CartsModule {}

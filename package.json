@@ -80,6 +80,7 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@gen-prisma/client$": "<rootDir>/../generated/prisma/client.ts",
+      "^@gen-prisma/browser$": "<rootDir>/../generated/prisma/browser.ts",
       "^@app/(.*)$": "<rootDir>/$1",
       "^(\\.{1,2}/.*)\\.js$": "$1"
     }
