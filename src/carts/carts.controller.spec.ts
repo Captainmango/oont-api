@@ -772,4 +772,412 @@ describe('CartsController', () => {
       await prismaService.cart.delete({ where: { id: oldCart.id } });
     });
   });
+
+  describe('stock validation', () => {
+    let testUser: { id: number; name: string; email: string } | null = null;
+    let testCart: { id: number } | null = null;
+    let testProduct: { id: number; name: string; quantity: number } | null =
+      null;
+
+    afterEach(async () => {
+      if (testCart) {
+        await prismaService.cartProduct
+          .deleteMany({ where: { cartId: testCart.id } })
+          .catch(() => {});
+        await prismaService.userCart
+          .deleteMany({ where: { cartId: testCart.id } })
+          .catch(() => {});
+        await prismaService.cart
+          .delete({ where: { id: testCart.id } })
+          .catch(() => {});
+        testCart = null;
+      }
+      if (testProduct) {
+        await prismaService.product
+          .delete({ where: { id: testProduct.id } })
+          .catch(() => {});
+        testProduct = null;
+      }
+      if (testUser) {
+        await prismaService.user
+          .delete({ where: { id: testUser.id } })
+          .catch(() => {});
+        testUser = null;
+      }
+    });
+
+    describe('addItemToCart stock validation', () => {
+      it('should fail when adding more items than available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Stock Check',
+            email: `test-stock-check-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Limited Stock',
+            quantity: 5,
+          },
+        });
+
+        await expect(
+          controller.addItemToCart(testUser.id, {
+            productId: testProduct.id,
+            quantity: 6,
+          }),
+        ).rejects.toThrow();
+
+        const cartProduct = await prismaService.cartProduct.findFirst({
+          where: {
+            productId: testProduct.id,
+          },
+        });
+        expect(cartProduct).toBeNull();
+      });
+
+      it('should succeed when adding items within available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Stock Success',
+            email: `test-stock-success-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Sufficient Stock',
+            quantity: 10,
+          },
+        });
+
+        const result = await controller.addItemToCart(testUser.id, {
+          productId: testProduct.id,
+          quantity: 4,
+        });
+
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('id');
+        expect(result).toHaveProperty('products');
+        expect(result.products.length).toBe(1);
+        expect(result.products[0].id).toBe(testProduct.id);
+
+        testCart = { id: result.id };
+
+        const cartProduct = await prismaService.cartProduct.findFirst({
+          where: {
+            productId: testProduct.id,
+          },
+        });
+        expect(cartProduct).not.toBeNull();
+        expect(cartProduct?.quantity).toBe(4);
+      });
+
+      it('should fail when incrementing would exceed available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Increment Stock Check',
+            email: `test-increment-stock-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Increment Limited',
+            quantity: 5,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 3,
+              },
+            },
+          },
+        });
+
+        await expect(
+          controller.addItemToCart(testUser.id, {
+            productId: testProduct.id,
+            quantity: 3,
+          }),
+        ).rejects.toThrow();
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(3);
+      });
+
+      it('should succeed when incrementing stays within available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Increment Stock Success',
+            email: `test-increment-success-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Increment Sufficient',
+            quantity: 10,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 2,
+              },
+            },
+          },
+        });
+
+        const result = await controller.addItemToCart(testUser.id, {
+          productId: testProduct.id,
+          quantity: 4,
+        });
+
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('id');
+        expect(result).toHaveProperty('products');
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(6);
+      });
+    });
+
+    describe('updateCartItem stock validation', () => {
+      it('should fail when setting quantity above available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Update Stock Check',
+            email: `test-update-stock-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Update Limited',
+            quantity: 5,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 2,
+              },
+            },
+          },
+        });
+
+        await expect(
+          controller.updateCartItem(testUser.id, testProduct.id, {
+            quantity: 6,
+          }),
+        ).rejects.toThrow();
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(2);
+      });
+
+      it('should succeed when setting quantity within available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Update Stock Success',
+            email: `test-update-success-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Update Sufficient',
+            quantity: 10,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 2,
+              },
+            },
+          },
+        });
+
+        const result = await controller.updateCartItem(
+          testUser.id,
+          testProduct.id,
+          {
+            quantity: 4,
+          },
+        );
+
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('id');
+        expect(result).toHaveProperty('products');
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(4);
+      });
+
+      it('should succeed when setting quantity exactly at stock limit', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Stock Boundary',
+            email: `test-stock-boundary-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Boundary',
+            quantity: 5,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 1,
+              },
+            },
+          },
+        });
+
+        const result = await controller.updateCartItem(
+          testUser.id,
+          testProduct.id,
+          {
+            quantity: 5,
+          },
+        );
+
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('id');
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(5);
+      });
+
+      it('should fail when requesting one more than available stock', async () => {
+        testUser = await prismaService.user.create({
+          data: {
+            name: 'Test User Stock Plus One',
+            email: `test-stock-plus-one-${Date.now()}@example.com`,
+          },
+        });
+
+        testProduct = await prismaService.product.create({
+          data: {
+            name: 'Test Product Plus One',
+            quantity: 5,
+          },
+        });
+
+        testCart = await prismaService.cart.create({
+          data: {
+            users: {
+              create: {
+                userId: testUser.id,
+              },
+            },
+            products: {
+              create: {
+                productId: testProduct.id,
+                quantity: 1,
+              },
+            },
+          },
+        });
+
+        await expect(
+          controller.updateCartItem(testUser.id, testProduct.id, {
+            quantity: 6,
+          }),
+        ).rejects.toThrow();
+
+        const cartProduct = await prismaService.cartProduct.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: testCart.id,
+              productId: testProduct.id,
+            },
+          },
+        });
+        expect(cartProduct?.quantity).toBe(1);
+      });
+    });
+  });
 });

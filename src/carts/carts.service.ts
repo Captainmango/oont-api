@@ -2,7 +2,7 @@ import { CartsRepository } from './carts.repository';
 import { CartEntity } from '@app/shared/entities/cart.entity';
 import { CartWithCartProducts } from './dtos/cartWithProducts.dto';
 import { ResultAsync, okAsync } from 'neverthrow';
-import { CartError, errTypes } from './errors';
+import { CartError, errTypes, InsufficientStockError } from './errors';
 import { Injectable } from '@nestjs/common';
 
 interface CartContext {
@@ -132,22 +132,44 @@ export class CartsService {
     return ({ cart, existingCartProduct }) => {
       if (existingCartProduct) {
         return ResultAsync.fromPromise(
-          this.repo.updateCartProductQuantity(cart.id, productId, quantity),
-          (originalError): CartError => ({
-            type: errTypes.PRODUCT_UPDATE_FAILED,
-            message: 'Failed to update product quantity in cart',
-            originalError,
-          }),
+          this.repo.updateCartProductQuantityWithStockCheck(
+            cart.id,
+            productId,
+            quantity,
+          ),
+          (originalError): CartError => {
+            if (originalError instanceof InsufficientStockError) {
+              return {
+                type: errTypes.INSUFFICIENT_STOCK,
+                message: `Insufficient stock for product ${productId}. Available: ${originalError.availableStock}, Requested: ${originalError.requestedQuantity}`,
+                originalError,
+              };
+            }
+            return {
+              type: errTypes.PRODUCT_UPDATE_FAILED,
+              message: 'Failed to update product quantity in cart',
+              originalError,
+            };
+          },
         ).map(() => ({ cartId: cart.id }));
       }
 
       return ResultAsync.fromPromise(
-        this.repo.addCartProduct(cart.id, productId, quantity),
-        (originalError): CartError => ({
-          type: errTypes.PRODUCT_ADD_FAILED,
-          message: 'Failed to add product to cart',
-          originalError,
-        }),
+        this.repo.addCartProductWithStockCheck(cart.id, productId, quantity),
+        (originalError): CartError => {
+          if (originalError instanceof InsufficientStockError) {
+            return {
+              type: errTypes.INSUFFICIENT_STOCK,
+              message: `Insufficient stock for product ${productId}. Available: ${originalError.availableStock}, Requested: ${originalError.requestedQuantity}`,
+              originalError,
+            };
+          }
+          return {
+            type: errTypes.PRODUCT_ADD_FAILED,
+            message: 'Failed to add product to cart',
+            originalError,
+          };
+        },
       ).map(() => ({ cartId: cart.id }));
     };
   }
@@ -191,12 +213,25 @@ export class CartsService {
   ): (ctx: CartWithProductContext) => ResultAsync<CartIdContext, CartError> {
     return ({ cart }) => {
       return ResultAsync.fromPromise(
-        this.repo.setCartProductQuantity(cart.id, productId, quantity),
-        (originalError): CartError => ({
-          type: errTypes.PRODUCT_UPDATE_FAILED,
-          message: 'Failed to update cart item quantity',
-          originalError,
-        }),
+        this.repo.setCartProductQuantityWithStockCheck(
+          cart.id,
+          productId,
+          quantity,
+        ),
+        (originalError): CartError => {
+          if (originalError instanceof InsufficientStockError) {
+            return {
+              type: errTypes.INSUFFICIENT_STOCK,
+              message: `Insufficient stock for product ${productId}. Available: ${originalError.availableStock}, Requested: ${originalError.requestedQuantity}`,
+              originalError,
+            };
+          }
+          return {
+            type: errTypes.PRODUCT_UPDATE_FAILED,
+            message: 'Failed to update cart item quantity',
+            originalError,
+          };
+        },
       ).map(() => ({ cartId: cart.id }));
     };
   }

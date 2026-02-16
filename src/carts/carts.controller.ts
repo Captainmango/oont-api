@@ -70,6 +70,7 @@ export class CartsController {
             throw new NotFoundException(err);
           case errTypes.PRODUCT_ADD_FAILED:
           case errTypes.PRODUCT_UPDATE_FAILED:
+          case errTypes.INSUFFICIENT_STOCK:
             throw new ConflictException(err);
           case errTypes.CART_ITEM_NOT_DELETED:
           case errTypes.CART_NOT_DELETED:
@@ -103,6 +104,7 @@ export class CartsController {
             throw new NotFoundException(err);
           case errTypes.PRODUCT_ADD_FAILED:
           case errTypes.PRODUCT_UPDATE_FAILED:
+          case errTypes.INSUFFICIENT_STOCK:
             throw new ConflictException(err);
           case errTypes.CART_ITEM_NOT_DELETED:
           case errTypes.CART_NOT_DELETED:
