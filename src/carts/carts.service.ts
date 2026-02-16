@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
 import { CartsRepository } from './carts.repository';
 import { CartEntity } from '@app/shared/entities/cart.entity';
 import { CartWithCartProducts } from './dtos/cartWithProducts.dto';
-import { ResultAsync, ok, okAsync } from 'neverthrow';
+import { ResultAsync, okAsync } from 'neverthrow';
 import { CartError, errTypes } from './errors';
+import { Injectable } from '@nestjs/common';
 
 interface CartContext {
   cart: CartWithCartProducts;
@@ -49,7 +49,7 @@ export class CartsService {
       .andThen(this.findCartProduct(productId))
       .andThen(this.upsertCartProduct(productId, quantity))
       .andThen(this.getUpdatedCart())
-      .map(this.transformCartToEntity);
+      .map((cart) => this.transformCartToEntity(cart));
   }
 
   updateCartItem(
@@ -70,12 +70,12 @@ export class CartsService {
       .andThen(this.validateCartItemExists())
       .andThen(this.setCartItemQuantity(productId, quantity))
       .andThen(this.getUpdatedCart())
-      .map(this.transformCartToEntity);
+      .map((cart) => this.transformCartToEntity(cart));
   }
 
   removeItemFromCart(
     userId: number,
-    itemId: number,
+    productId: number,
   ): ResultAsync<CartEntity, CartError> {
     return ResultAsync.fromPromise(
       this.repo.findMostRecentCartByUserId(userId),
@@ -86,11 +86,11 @@ export class CartsService {
       }),
     )
       .andThen(this.validateCartExists())
-      .andThen(this.findCartProduct(itemId))
+      .andThen(this.findCartProduct(productId))
       .andThen(this.validateCartItemExists())
-      .andThen(this.removeCartProduct(itemId))
+      .andThen(this.removeCartProduct())
       .andThen(this.getUpdatedCart())
-      .map(this.transformCartToEntity);
+      .map((cart) => this.transformCartToEntity(cart));
   }
 
   deleteUserCart(userId: number): ResultAsync<void, CartError> {
@@ -219,9 +219,9 @@ export class CartsService {
     };
   }
 
-  private removeCartProduct(
-    itemId: number,
-  ): (ctx: CartWithProductContext) => ResultAsync<CartIdContext, CartError> {
+  private removeCartProduct(): (
+    ctx: CartWithProductContext,
+  ) => ResultAsync<CartIdContext, CartError> {
     return ({ cart, existingCartProduct }) => {
       return ResultAsync.fromPromise(
         this.repo.removeCartProduct(cart.id, existingCartProduct!.productId),

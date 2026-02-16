@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   Get,
   InternalServerErrorException,
@@ -25,12 +24,19 @@ export class CategoriesContoller {
   async getAllCategories(): Promise<CategoriesListDto> {
     const result = await this.categoriesService.getAll();
 
-    if (result.isErr()) {
-      const error = result.error;
-      throw new NotFoundException(error);
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CATEGORIES_NOT_FOUND:
+          case errTypes.CATEGORY_NOT_FOUND:
+          case errTypes.PRODUCTS_NOT_FOUND:
+            throw new NotFoundException(err);
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Get('/:id/products')
@@ -39,18 +45,18 @@ export class CategoriesContoller {
   ): Promise<ProductsListDto> {
     const result = await this.categoriesService.getAllProductsByCategoryId(id);
 
-    if (result.isErr()) {
-      const error = result.error;
-      switch (error.type) {
-        case errTypes.CATEGORIES_NOT_FOUND:
-        case errTypes.CATEGORY_NOT_FOUND:
-        case errTypes.PRODUCTS_NOT_FOUND:
-          throw new NotFoundException(error);
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CATEGORIES_NOT_FOUND:
+          case errTypes.CATEGORY_NOT_FOUND:
+          case errTypes.PRODUCTS_NOT_FOUND:
+            throw new NotFoundException(err);
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 }

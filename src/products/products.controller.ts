@@ -32,12 +32,18 @@ export class ProductsController {
       query.pageSize,
     );
 
-    if (result.isErr()) {
-      const error = result.error;
-      throw new NotFoundException(error);
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.PRODUCTS_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Get('/:id')
@@ -46,17 +52,17 @@ export class ProductsController {
   ): Promise<ProductEntity | null> {
     const result = await this.productsService.getById(id);
 
-    if (result.isErr()) {
-      const error = result.error
-      switch (error.type) {
-        case errTypes.PRODUCT_NOT_FOUND:
-        case errTypes.PRODUCTS_NOT_FOUND:
-          throw new NotFoundException(error);
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.PRODUCTS_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 }

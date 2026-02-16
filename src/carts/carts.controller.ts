@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -36,11 +35,17 @@ export class CartsController {
   ): Promise<CartEntity | null> {
     const result = await this.cartsService.getUserCart(userId);
 
-    if (result.isErr()) {
-      throw new BadRequestException(result.error.message);
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CART_NOT_FOUND:
+            throw new NotFoundException(err);
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Post('/:userId/items')
@@ -55,24 +60,24 @@ export class CartsController {
       addItemToCartDto.quantity,
     );
 
-    if (result.isErr()) {
-      const error = result.error;
-      switch (error.type) {
-        case errTypes.CART_ITEM_NOT_FOUND:
-        case errTypes.CART_NOT_FOUND:
-        case errTypes.PRODUCT_NOT_FOUND:
-          throw new NotFoundException(error)
-        case errTypes.PRODUCT_ADD_FAILED:
-        case errTypes.PRODUCT_UPDATE_FAILED:
-          throw new ConflictException(error)
-        case errTypes.CART_ITEM_NOT_DELETED:
-        case errTypes.CART_NOT_DELETED:
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CART_ITEM_NOT_FOUND:
+          case errTypes.CART_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          case errTypes.PRODUCT_ADD_FAILED:
+          case errTypes.PRODUCT_UPDATE_FAILED:
+            throw new ConflictException(err);
+          case errTypes.CART_ITEM_NOT_DELETED:
+          case errTypes.CART_NOT_DELETED:
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Put('/:userId/items/:itemId')
@@ -88,24 +93,24 @@ export class CartsController {
       updateCartItemsDto.quantity,
     );
 
-    if (result.isErr()) {
-      const error = result.error;
-      switch (error.type) {
-        case errTypes.CART_ITEM_NOT_FOUND:
-        case errTypes.CART_NOT_FOUND:
-        case errTypes.PRODUCT_NOT_FOUND:
-          throw new NotFoundException(error)
-        case errTypes.PRODUCT_ADD_FAILED:
-        case errTypes.PRODUCT_UPDATE_FAILED:
-          throw new ConflictException(error)
-        case errTypes.CART_ITEM_NOT_DELETED:
-        case errTypes.CART_NOT_DELETED:
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CART_ITEM_NOT_FOUND:
+          case errTypes.CART_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          case errTypes.PRODUCT_ADD_FAILED:
+          case errTypes.PRODUCT_UPDATE_FAILED:
+            throw new ConflictException(err);
+          case errTypes.CART_ITEM_NOT_DELETED:
+          case errTypes.CART_NOT_DELETED:
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Delete('/:userId/items/:itemId')
@@ -113,27 +118,27 @@ export class CartsController {
   async removeItemFromCart(
     @Param('userId', new ParseIntPipe()) userId: number,
     @Param('itemId', new ParseIntPipe()) itemId: number,
-  ) {
+  ): Promise<CartEntity> {
     const result = await this.cartsService.removeItemFromCart(userId, itemId);
 
-    if (result.isErr()) {
-      const error = result.error;
-      switch (error.type) {
-        case errTypes.CART_ITEM_NOT_FOUND:
-        case errTypes.CART_NOT_FOUND:
-        case errTypes.PRODUCT_NOT_FOUND:
-          throw new NotFoundException(error)
-        case errTypes.PRODUCT_ADD_FAILED:
-        case errTypes.PRODUCT_UPDATE_FAILED:
-          throw new ConflictException(error)
-        case errTypes.CART_ITEM_NOT_DELETED:
-        case errTypes.CART_NOT_DELETED:
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
-
-    return result.value;
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CART_ITEM_NOT_FOUND:
+          case errTypes.CART_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          case errTypes.PRODUCT_ADD_FAILED:
+          case errTypes.PRODUCT_UPDATE_FAILED:
+            throw new ConflictException(err);
+          case errTypes.CART_ITEM_NOT_DELETED:
+          case errTypes.CART_NOT_DELETED:
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 
   @Delete('/:userId')
@@ -143,21 +148,23 @@ export class CartsController {
   ): Promise<void> {
     const result = await this.cartsService.deleteUserCart(userId);
 
-    if (result.isErr()) {
-      const error = result.error;
-      switch (error.type) {
-        case errTypes.CART_ITEM_NOT_FOUND:
-        case errTypes.CART_NOT_FOUND:
-        case errTypes.PRODUCT_NOT_FOUND:
-          throw new NotFoundException(error)
-        case errTypes.PRODUCT_ADD_FAILED:
-        case errTypes.PRODUCT_UPDATE_FAILED:
-          throw new ConflictException(error)
-        case errTypes.CART_ITEM_NOT_DELETED:
-        case errTypes.CART_NOT_DELETED:
-        default:
-          throw new InternalServerErrorException(error)
-      }
-    }
+    return result.match(
+      (ok) => ok,
+      (err) => {
+        switch (err.type) {
+          case errTypes.CART_ITEM_NOT_FOUND:
+          case errTypes.CART_NOT_FOUND:
+          case errTypes.PRODUCT_NOT_FOUND:
+            throw new NotFoundException(err);
+          case errTypes.PRODUCT_ADD_FAILED:
+          case errTypes.PRODUCT_UPDATE_FAILED:
+            throw new ConflictException(err);
+          case errTypes.CART_ITEM_NOT_DELETED:
+          case errTypes.CART_NOT_DELETED:
+          default:
+            throw new InternalServerErrorException(err);
+        }
+      },
+    );
   }
 }
