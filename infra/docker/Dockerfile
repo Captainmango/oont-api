@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install
 COPY . .
-RUN bun run build && bun run db:gen-schema
+RUN bun run build && bun run db:gen-client
 
 
 ##### RUN #####

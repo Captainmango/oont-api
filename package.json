@@ -18,7 +18,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "db:gen-client": "prisma generate",
     "db:dev:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:dev:seed": "prisma db seed"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
