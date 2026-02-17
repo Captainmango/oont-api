@@ -3,7 +3,7 @@ import { ProductsController } from './products.controller';
 import { PrismaService } from '@app/prisma/prisma.service';
 import { ProductModule } from './products.module';
 import { PrismaModule } from '@app/prisma/prisma.module';
-import { GetAllProductsDto } from './dtos/getAllProducts.dto';
+import { PaginationQueryDto } from '@app/shared/dtos/paginationQuery.dto';
 
 describe('ProductsController', () => {
   let controller: ProductsController;
@@ -51,7 +51,7 @@ describe('ProductsController', () => {
 
   describe('getAllProducts', () => {
     it('should return a list of products from the database', async () => {
-      const queryDto: GetAllProductsDto = {};
+      const queryDto: PaginationQueryDto = {};
       const result = await controller.getAllProducts(queryDto);
 
       expect(result).toBeDefined();
@@ -61,7 +61,7 @@ describe('ProductsController', () => {
     });
 
     it('should return products with correct data structure', async () => {
-      const queryDto: GetAllProductsDto = {};
+      const queryDto: PaginationQueryDto = {};
       const result = await controller.getAllProducts(queryDto);
 
       const product = result.products.find((p) => p.id === testProducts[0].id);
@@ -77,7 +77,7 @@ describe('ProductsController', () => {
     });
 
     it('should support pagination with page and pageSize', async () => {
-      const queryDto: GetAllProductsDto = { page: 1, pageSize: 2 };
+      const queryDto: PaginationQueryDto = { page: 1, pageSize: 2 };
       const result = await controller.getAllProducts(queryDto);
 
       expect(result.products).toBeDefined();
@@ -85,8 +85,8 @@ describe('ProductsController', () => {
     });
 
     it('should return different products for different pages', async () => {
-      const page1Dto: GetAllProductsDto = { page: 1, pageSize: 2 };
-      const page2Dto: GetAllProductsDto = { page: 2, pageSize: 2 };
+      const page1Dto: PaginationQueryDto = { page: 1, pageSize: 2 };
+      const page2Dto: PaginationQueryDto = { page: 2, pageSize: 2 };
       const page1 = await controller.getAllProducts(page1Dto);
       const page2 = await controller.getAllProducts(page2Dto);
 
@@ -96,11 +96,25 @@ describe('ProductsController', () => {
     });
 
     it('should use default pagination when no params provided', async () => {
-      const queryDto: GetAllProductsDto = {};
+      const queryDto: PaginationQueryDto = {};
       const result = await controller.getAllProducts(queryDto);
 
       expect(result.products).toBeDefined();
       expect(result.products.length).toBeLessThanOrEqual(10);
+    });
+
+    it('should return pagination metadata in response', async () => {
+      const queryDto: PaginationQueryDto = {};
+      const result = await controller.getAllProducts(queryDto);
+
+      expect(result.meta).toBeDefined();
+      expect(result.meta.pagination).toBeDefined();
+      expect(result.meta.pagination).toHaveProperty('page');
+      expect(result.meta.pagination).toHaveProperty('pageSize');
+      expect(result.meta.pagination).toHaveProperty('count');
+      expect(typeof result.meta.pagination.page).toBe('number');
+      expect(typeof result.meta.pagination.pageSize).toBe('number');
+      expect(typeof result.meta.pagination.count).toBe('number');
     });
   });
 

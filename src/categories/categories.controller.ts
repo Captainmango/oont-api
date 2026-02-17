@@ -5,12 +5,15 @@ import {
   NotFoundException,
   Param,
   ParseIntPipe,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
-import { CategoriesListDto } from './dtos/categoriesList.dto';
+import { CategoriesListDto } from '../shared/dtos/categoriesList.dto';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { errTypes } from './errors';
+import { PaginationQueryDto } from '@app/shared/dtos/paginationQuery.dto';
 
 @ApiTags('categories')
 @Controller({
@@ -21,8 +24,13 @@ export class CategoriesContoller {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  async getAllCategories(): Promise<CategoriesListDto> {
-    const result = await this.categoriesService.getAll();
+  async getAllCategories(
+    @Query(new ValidationPipe({ transform: true })) query: PaginationQueryDto,
+  ): Promise<CategoriesListDto> {
+    const result = await this.categoriesService.getAll(
+      query.page,
+      query.pageSize,
+    );
 
     return result.match(
       (ok) => ok,
@@ -42,6 +50,7 @@ export class CategoriesContoller {
   @Get('/:id/products')
   async getAllProductsByCategory(
     @Param('id', new ParseIntPipe()) id: number,
+    @Query(new ValidationPipe({ transform: true })) query: PaginationQueryDto,
   ): Promise<ProductsListDto> {
     const result = await this.categoriesService.getAllProductsByCategoryId(id);
 

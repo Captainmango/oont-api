@@ -8,12 +8,20 @@ export class ProductsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getProducts(page: number, pageSize: number): Promise<ProductsListDto> {
-    const products = await this.prisma.product.findMany({
-      take: pageSize,
-      skip: (page - 1) * pageSize,
-    });
+    const [products, count] = await Promise.all([
+      this.prisma.product.findMany({
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+      this.prisma.product.count()
+    ])
 
-    return { products };
+    return { 
+      products,
+      meta: {
+        pagination: { page, pageSize, count}
+      }
+    };
   }
 
   async getProductById(id: number): Promise<ProductEntity | null> {

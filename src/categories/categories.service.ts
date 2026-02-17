@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CategoriesRepository } from './categories.repository';
-import { CategoriesListDto } from './dtos/categoriesList.dto';
+import { CategoriesListDto } from '../shared/dtos/categoriesList.dto';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
 import { ResultAsync } from 'neverthrow';
 import { CategoryError, errTypes } from './errors';
@@ -9,9 +9,12 @@ import { CategoryError, errTypes } from './errors';
 export class CategoriesService {
   constructor(private readonly repo: CategoriesRepository) {}
 
-  getAll(): ResultAsync<CategoriesListDto, CategoryError> {
+  getAll(
+    page: number = 1,
+    pageSize: number = 10
+  ): ResultAsync<CategoriesListDto, CategoryError> {
     return ResultAsync.fromPromise(
-      this.repo.findAll(),
+      this.repo.findAll(page, pageSize),
       (originalError): CategoryError => ({
         type: errTypes.CATEGORIES_NOT_FOUND,
         message: 'Failed to retrieve categories',
@@ -22,14 +25,16 @@ export class CategoriesService {
 
   getAllProductsByCategoryId(
     categoryId: number,
+    page: number = 1,
+    pageSize: number = 10
   ): ResultAsync<ProductsListDto, CategoryError> {
     return ResultAsync.fromPromise(
-      this.repo.findProductsByCategoryId(categoryId),
+      this.repo.findProductsByCategoryId(categoryId, page, pageSize),
       (originalError): CategoryError => ({
         type: errTypes.PRODUCTS_NOT_FOUND,
         message: 'Failed to retrieve products for category',
         originalError,
       }),
-    ).map((products) => ({ products }));
+    );
   }
 }

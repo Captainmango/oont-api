@@ -11,9 +11,9 @@ import {
 import { ProductsService } from './products.service';
 import { ApiTags } from '@nestjs/swagger';
 import { ProductsListDto } from '@app/shared/dtos/productsList.dto';
-import { GetAllProductsDto } from './dtos/getAllProducts.dto';
 import { ProductEntity } from '@app/shared/entities/product.entity';
 import { errTypes } from './errors';
+import { PaginationQueryDto } from '@app/shared/dtos/paginationQuery.dto';
 
 @ApiTags('products')
 @Controller({
@@ -25,7 +25,7 @@ export class ProductsController {
 
   @Get()
   async getAllProducts(
-    @Query(new ValidationPipe({ transform: true })) query: GetAllProductsDto,
+    @Query(new ValidationPipe({ transform: true })) query: PaginationQueryDto,
   ): Promise<ProductsListDto> {
     const result = await this.productsService.getAll(
       query.page,

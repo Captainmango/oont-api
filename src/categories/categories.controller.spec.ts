@@ -3,6 +3,7 @@ import { CategoriesContoller } from './categories.controller';
 import { PrismaService } from '@app/prisma/prisma.service';
 import { CategoryModule } from './categories.module';
 import { PrismaModule } from '@app/prisma/prisma.module';
+import { PaginationQueryDto } from '@app/shared/dtos/paginationQuery.dto';
 
 describe('CategoriesController', () => {
   let controller: CategoriesContoller;
@@ -42,7 +43,8 @@ describe('CategoriesController', () => {
     });
 
     it('should return a list of categories from the database', async () => {
-      const result = await controller.getAllCategories();
+      const queryDto: PaginationQueryDto = {};
+      const result = await controller.getAllCategories(queryDto);
 
       expect(result).toBeDefined();
       expect(result.categories).toBeDefined();
@@ -50,7 +52,8 @@ describe('CategoriesController', () => {
     });
 
     it('should return categories with correct data structure', async () => {
-      const result = await controller.getAllCategories();
+      const queryDto: PaginationQueryDto = {};
+      const result = await controller.getAllCategories(queryDto);
 
       const category = result.categories.find((c) => c.id === testCategory!.id);
       expect(category).toBeDefined();
@@ -60,6 +63,20 @@ describe('CategoriesController', () => {
       expect(category).toHaveProperty('updated_at');
       expect(typeof category?.id).toBe('number');
       expect(typeof category?.name).toBe('string');
+    });
+
+    it('should return pagination metadata in response', async () => {
+      const queryDto: PaginationQueryDto = {};
+      const result = await controller.getAllCategories(queryDto);
+
+      expect(result.meta).toBeDefined();
+      expect(result.meta.pagination).toBeDefined();
+      expect(result.meta.pagination).toHaveProperty('page');
+      expect(result.meta.pagination).toHaveProperty('pageSize');
+      expect(result.meta.pagination).toHaveProperty('count');
+      expect(typeof result.meta.pagination.page).toBe('number');
+      expect(typeof result.meta.pagination.pageSize).toBe('number');
+      expect(typeof result.meta.pagination.count).toBe('number');
     });
   });
 
@@ -112,8 +129,10 @@ describe('CategoriesController', () => {
     });
 
     it('should return all products linked to a category', async () => {
+      const queryDto: PaginationQueryDto = {};
       const result = await controller.getAllProductsByCategory(
         testCategory!.id,
+        queryDto,
       );
 
       expect(result).toBeDefined();
@@ -131,8 +150,10 @@ describe('CategoriesController', () => {
       });
 
       try {
+        const queryDto: PaginationQueryDto = {};
         const result = await controller.getAllProductsByCategory(
           emptyCategory.id,
+          queryDto,
         );
 
         expect(result).toBeDefined();
@@ -144,6 +165,23 @@ describe('CategoriesController', () => {
           .delete({ where: { id: emptyCategory.id } })
           .catch(() => {});
       }
+    });
+
+    it('should return pagination metadata for products in category', async () => {
+      const queryDto: PaginationQueryDto = {};
+      const result = await controller.getAllProductsByCategory(
+        testCategory!.id,
+        queryDto,
+      );
+
+      expect(result.meta).toBeDefined();
+      expect(result.meta.pagination).toBeDefined();
+      expect(result.meta.pagination).toHaveProperty('page');
+      expect(result.meta.pagination).toHaveProperty('pageSize');
+      expect(result.meta.pagination).toHaveProperty('count');
+      expect(typeof result.meta.pagination.page).toBe('number');
+      expect(typeof result.meta.pagination.pageSize).toBe('number');
+      expect(typeof result.meta.pagination.count).toBe('number');
     });
   });
 });
