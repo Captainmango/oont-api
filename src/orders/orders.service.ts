@@ -23,6 +23,7 @@ interface CartProduct {
 
 interface CartProductsContext {
   userId: number;
+  cartId: number;
   cartProducts: CartProduct[];
 }
 
@@ -120,16 +121,16 @@ export class OrdersService {
         productId: item.product.id,
         quantity: item.quantity,
       }));
-      return okAsync({ userId, cartProducts });
+      return okAsync({ userId, cartId: cart.id, cartProducts });
     };
   }
 
   private createOrder(): (
     ctx: CartProductsContext,
   ) => ResultAsync<CreatedOrderContext, OrderError> {
-    return ({ userId, cartProducts }) => {
+    return ({ userId, cartId, cartProducts }) => {
       return ResultAsync.fromPromise(
-        this.repo.createOrderFromCart(userId, cartProducts),
+        this.repo.createOrderFromCart(userId, cartId, cartProducts),
         (originalError): OrderError => {
           if (originalError instanceof InsufficientStockError) {
             return {

@@ -29,7 +29,8 @@ export class CartsService {
         message: 'Failed to retrieve cart for user',
         originalError,
       }),
-    ).map((cart) => (cart ? this.transformCartToEntity(cart) : null));
+    )
+    .map((cart) => (cart ? this.transformCartToEntity(cart) : null));
   }
 
   addItemToCart(

@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { CartsController } from './carts.controller';
 import { PrismaService } from '@app/prisma/prisma.service';
 import { CartsModule } from './carts.module';
 import { PrismaModule } from '@app/prisma/prisma.module';
 import { ProductEntity } from '@app/shared/entities/product.entity';
+import { CartNotFoundError } from './errors';
 
 describe('CartsController', () => {
   let controller: CartsController;
@@ -93,9 +95,9 @@ describe('CartsController', () => {
         },
       });
 
-      const result = await controller.getUserCart(testUser.id);
-
-      expect(result).toBeNull();
+      await expect(controller.getUserCart(testUser.id)).rejects.toThrow(
+        NotFoundException
+      )
     });
 
     it('should return null when all carts are soft deleted', async () => {
@@ -117,9 +119,9 @@ describe('CartsController', () => {
         },
       });
 
-      const result = await controller.getUserCart(testUser.id);
-
-      expect(result).toBeNull();
+      await expect(controller.getUserCart(testUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should return cart with products when cart contains items', async () => {
@@ -724,7 +726,9 @@ describe('CartsController', () => {
         },
       });
 
-      await expect(controller.deleteCart(testUser.id)).resolves.toBeUndefined();
+      await expect(controller.deleteCart(testUser.id)).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should only delete the most recent active cart', async () => {

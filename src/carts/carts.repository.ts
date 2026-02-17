@@ -92,7 +92,7 @@ export class CartsRepository {
   }
 
   async deleteUserCart(userId: number) {
-    const userCart = await this.prisma.userCart.findFirst({
+    const userCart = await this.prisma.userCart.findFirstOrThrow({
       where: {
         userId,
         cart: {

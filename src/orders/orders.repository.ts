@@ -13,7 +13,11 @@ interface CartProduct {
 export class OrdersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createOrderFromCart(userId: number, cartProducts: CartProduct[]) {
+  async createOrderFromCart(
+    userId: number,
+    cartId: number,
+    cartProducts: CartProduct[],
+  ) {
     return this.prisma.$transaction(
       async (tx) => {
         if (cartProducts.length === 0) {
@@ -95,6 +99,15 @@ export class OrdersRepository {
                 product: true,
               },
             },
+          },
+        });
+
+        await tx.cart.update({
+          where: {
+            id: cartId,
+          },
+          data: {
+            deleted_at: new Date(),
           },
         });
 

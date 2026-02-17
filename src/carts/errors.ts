@@ -28,3 +28,12 @@ export class InsufficientStockError extends Error {
     this.name = 'InsufficientStockError';
   }
 }
+
+export class CartNotFoundError extends Error {
+  type: keyof typeof errTypes
+  constructor(){
+    super('Cart not found.')
+    this.name = 'CartNotFoundError'
+    this.type = errTypes.CART_NOT_FOUND
+  }
+}

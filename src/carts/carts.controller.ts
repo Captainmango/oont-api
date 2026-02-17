@@ -17,7 +17,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { CartsService } from './carts.service';
 import { CartEntity } from '@app/shared/entities/cart.entity';
 import { AddItemToCartDto } from './dtos/addItemToCart.dto';
-import { errTypes } from './errors';
+import { CartNotFoundError, errTypes } from './errors';
 import { UpdateCartItemDto } from './dtos/updateCartItem.dto';
 import { ValidateUserExistsPipe } from '@app/users/pipes/validate-user-exists.pipe';
 
@@ -37,7 +37,13 @@ export class CartsController {
     const result = await this.cartsService.getUserCart(userId);
 
     return result.match(
-      (ok) => ok,
+      (ok) => {
+        if (ok) {
+          return ok
+        }
+
+        throw new NotFoundException(new CartNotFoundError)
+      },
       (err) => {
         switch (err.type) {
           case errTypes.CART_NOT_FOUND:
@@ -158,12 +164,12 @@ export class CartsController {
           case errTypes.CART_ITEM_NOT_FOUND:
           case errTypes.CART_NOT_FOUND:
           case errTypes.PRODUCT_NOT_FOUND:
+          case errTypes.CART_NOT_DELETED:
             throw new NotFoundException(err);
           case errTypes.PRODUCT_ADD_FAILED:
           case errTypes.PRODUCT_UPDATE_FAILED:
             throw new ConflictException(err);
           case errTypes.CART_ITEM_NOT_DELETED:
-          case errTypes.CART_NOT_DELETED:
           default:
             throw new InternalServerErrorException(err);
         }

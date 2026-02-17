@@ -163,6 +163,11 @@ describe('OrdersController', () => {
         where: { orderId: result.id },
       });
       expect(userOrder?.userId).toBe(testUser.id);
+
+      const cartAfterOrder = await prismaService.cart.findUnique({
+        where: { id: testCart!.id },
+      });
+      expect(cartAfterOrder?.deleted_at).not.toBeNull();
     });
 
     it('should rollback transaction when one item would be oversold', async () => {
